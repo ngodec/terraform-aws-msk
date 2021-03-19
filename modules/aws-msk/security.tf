@@ -1,5 +1,5 @@
 resource "aws_security_group" "msk_sg" {
-  description = var.sg_description
+  description = "Security Group for MSK Cluster ${var.cluster_name}"
   name        = var.cluster_name
   vpc_id      = var.vpc_id
   tags        = local.tags
@@ -7,7 +7,7 @@ resource "aws_security_group" "msk_sg" {
 
 resource "aws_kms_key" "msk_key" {
 
-  description              = var.kms_key_description
+  description              = "KMS Key for MSK Cluster ${var.cluster_name}"
   key_usage                = "ENCRYPT_DECRYPT"
   customer_master_key_spec = "SYMMETRIC_DEFAULT"
   deletion_window_in_days  = 30

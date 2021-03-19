@@ -8,8 +8,8 @@ variable "terraform_role_arn" {
   type        = string
 }
 
-variable "data_subnet_ids" {
-  description = "Subnet IDs of the data subnets. MSK cluster will be deployed to these"
+variable "vpc_client_subnets_ids" {
+  description = "Subnet IDs where the MSK cluster will be deployed"
   type        = list(string)
 }
 
@@ -59,19 +59,6 @@ variable "monitoring_node_exporter_enabled" {
   default     = true
 }
 
-variable "logging_cloudwatch_enabled" {
-  description = "Specifies whether the Cloudwatch Logging is enabled."
-  type        = bool
-  default     = true
-}
-
-variable "logging_cloudwatch_log_group_name" {
-  description = "Cloudwatch Log Group name for MSK logging."
-  type        = string
-  default     = null
-}
-
-
 variable "client_auth_ca_arns" {
   description = "List of ACM Certificate Authority ARNs for Client Auth."
   type        = list(string)
@@ -90,37 +77,30 @@ variable "kafka_configuration_revision" {
   default     = null
 }
 
+variable "kafka_in_cluster_encryption_enabled" {
+  description = "Whether data communication among broker nodes is encrypted."
+  type        = bool
+  default     = true
+}
+
 variable "kafka_client_broker_encryption_type" {
   description = "Encryption setting for data in transit between clients and brokers. Valid values: TLS, TLS_PLAINTEXT, and PLAINTEXT."
   type        = string
   default     = "TLS"
 }
 
-variable "msk_configuration_kafka_versions" {
-  description = "List of Apache Kafka versions which can use this configuration"
-  type        = list(string)
-  default     = ["2.6.0"]
+variable "prometheus_open_monitoring" {
+  description = "Populate this variable if you use Prometheus for monitoring"
+  type = object({
+    jmx_exporter_enabled  = bool
+    node_exporter_enabled = bool
+  })
+  default = {}
 }
 
-variable "msk_configuration_description" {
-  description = "Description of the configuration"
-  type        = string
-  default     = "MSK cluster configuration"
-}
-
-variable "sg_description" {
-  description = "Description of the Security Group"
-  type        = string
-  default     = "Security Group for MSK Cluster"
-}
-
-variable "kms_key_description" {
-  description = "Description of the KMS Key"
-  type        = string
-  default     = "KMS Key for MSK Cluster"
-}
-
-
+#----------------------------------------------
+# MSK Cluster Configuration parameters
+#
 variable "auto_create_topics_enable" {
   description = "Enables topic autocreation on the server"
   type        = bool
@@ -151,13 +131,9 @@ variable "offset_topic_replication_factor" {
   default     = 3
 }
 
-variable "sns_kms_master_key_id" {
-  description = "(Optional) The ARN of the KMS Key to use when encrypting log data in SNS."
-  type        = string
-  default     = null
-}
 #----------------------------------------------
-# Cloudwatch log group parameters
+# Cloudwatch parameters
+#
 variable "log_group_kms_key_id" {
   description = "(Optional) The ARN of the KMS Key to use when encrypting log data in Cloudwatch."
   type        = string
@@ -168,6 +144,22 @@ variable "log_group_retention_in_days" {
   description = "The number of days you want to retain log events in the newly created log group"
   type        = number
   default     = 30
+}
+
+variable "sns_kms_master_key_id" {
+  description = "(Optional) The ARN of the KMS Key to use when encrypting log data in SNS."
+  type        = string
+  default     = null
+}
+
+#----------------------------------------------
+# Configuration of the AWS ACM PCA if you want the module to create one 
+#
+
+variable "custom_pca_arns" {
+  description = "List of ARNs of ACM PCA that you want this MSK cluster to use for client authentication"
+  type        = list(string)
+  default     = []
 }
 
 variable "acmpca" {

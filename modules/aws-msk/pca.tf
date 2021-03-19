@@ -1,9 +1,7 @@
 # This will create the AWS ACM Private Certificate Authority
-# Creating this resource will leave the certificate authority
-# in a PENDING_CERTIFICATE status, which means it cannot yet issue certificates.
-# Terraform does not yet support signing the PCA certs natively.
-# Use the solution from this thread https://github.com/hashicorp/terraform-provider-aws/issues/5552
-# until the issue is resolved and a new Terra resource is added
+# And its root certificate
+# Since we are using a ROOT CA, it can sign its own certificate
+
 resource "aws_acmpca_certificate_authority" "msk_pca" {
   count = var.acmpca != {} ? 1 : 0
   certificate_authority_configuration {
@@ -31,16 +29,25 @@ resource "aws_acmpca_certificate_authority" "msk_pca" {
     }
   }
 
-  # This bit is the non-native solution to signing the root CA cert
-  provisioner "local-exec" {
-    command = <<EOT
-    export PCA_ARN='${aws_acmpca_certificate_authority.msk_pca.arn}'
-    export VALIDITY_DAYS=3650
-    export REGION=${var.region}
-    export ROLE_ARN=${var.terraform_role_arn}
-    ${path.module}/scripts/activate-pca.sh
-    EOT
-  }
-
   tags = local.tags
+}
+
+resource "aws_acmpca_certificate_authority_certificate" "msk_pca_ca_cert" {
+  certificate_authority_arn = aws_acmpca_certificate_authority.msk_pca.arn
+
+  certificate       = aws_acmpca_certificate.msk_pca_cert.certificate
+  certificate_chain = aws_acmpca_certificate.msk_pca_cert.certificate_chain
+}
+
+resource "aws_acmpca_certificate" "msk_pca_cert" {
+  certificate_authority_arn   = aws_acmpca_certificate_authority.msk_pca.arn
+  certificate_signing_request = aws_acmpca_certificate_authority.msk_pca.certificate_signing_request
+  signing_algorithm           = "SHA512WITHRSA"
+
+  template_arn = "arn:${data.aws_partition.current.partition}:acm-pca:::template/RootCACertificate/V1"
+
+  validity {
+    type  = "YEARS"
+    value = var.ca_cert_validity_years
+  }
 }
